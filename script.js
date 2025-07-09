@@ -8,7 +8,14 @@ document.addEventListener("DOMContentLoaded", () => {
   const resultContainer = document.getElementById("result-container");
   const scoreDisplay = document.getElementById("score");
 
-  const questions = [
+  const progressBar = document.getElementById("progress-bar");
+  const timeLeftDisplay = document.getElementById("time-left");
+
+
+  let timerInterval;
+  let timeLeft = 10;
+
+  let questions = [
     {
       question: "What is the capital of France?",
       choices: ["Paris", "London", "Berlin", "Madrid"],
@@ -33,13 +40,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let currentQuestionIndex = 0;
   let score = 0;
-
-  // track whether user got each question correct or not
-  let answeredCorrectlyFlags = new Array(questions.length).fill(false);
+  let answeredCorrectlyFlags = [];
 
   startBtn.addEventListener("click", startQuiz);
 
   nextBtn.addEventListener("click", () => {
+    clearInterval(timerInterval);
     currentQuestionIndex++;
     if (currentQuestionIndex < questions.length) {
       showQuestion();
@@ -51,7 +57,7 @@ document.addEventListener("DOMContentLoaded", () => {
   restartBtn.addEventListener("click", () => {
     currentQuestionIndex = 0;
     score = 0;
-    answeredCorrectlyFlags = new Array(questions.length).fill(false);
+    answeredCorrectlyFlags = [];
     resultContainer.classList.add("hidden");
     startQuiz();
   });
@@ -60,6 +66,7 @@ document.addEventListener("DOMContentLoaded", () => {
     startBtn.classList.add("hidden");
     resultContainer.classList.add("hidden");
     questionContainer.classList.remove("hidden");
+    shuffleArray(questions); // shuffle questions
     showQuestion();
   }
 
@@ -67,11 +74,33 @@ document.addEventListener("DOMContentLoaded", () => {
     nextBtn.classList.add("hidden");
     questionText.textContent = questions[currentQuestionIndex].question;
     choicesList.innerHTML = "";
+    answeredCorrectlyFlags[currentQuestionIndex] = false;
 
-    questions[currentQuestionIndex].choices.forEach((choice) => {
+    // update progress bar
+    const progressPercent = ((currentQuestionIndex) / questions.length) * 100;
+    progressBar.style.width = `${progressPercent}%`;
+
+    // start/reset timer
+    timeLeft = 10;
+    timeLeftDisplay.textContent = timeLeft;
+    clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+      timeLeft--;
+      timeLeftDisplay.textContent = timeLeft;
+      if (timeLeft === 0) {
+        clearInterval(timerInterval);
+        nextBtn.classList.remove("hidden");
+        disableOptions(); // prevent more selection
+      }
+    }, 1000);
+
+    // shuffle options
+    let choices = [...questions[currentQuestionIndex].choices];
+    shuffleArray(choices);
+
+    choices.forEach((choice) => {
       const li = document.createElement("li");
       li.textContent = choice;
-      
 
       li.addEventListener("click", () => {
         const allOptions = document.querySelectorAll("li");
@@ -83,17 +112,18 @@ document.addEventListener("DOMContentLoaded", () => {
         const wasCorrect = answeredCorrectlyFlags[currentQuestionIndex];
 
         if (choice === correctAnswer && !wasCorrect) {
-          // switched from wrong to correct
           score++;
+          
           answeredCorrectlyFlags[currentQuestionIndex] = true;
         } else if (choice !== correctAnswer && wasCorrect) {
-          // switched from correct to wrong
           score--;
+          
           answeredCorrectlyFlags[currentQuestionIndex] = false;
+        } else {
+         
         }
 
         nextBtn.classList.remove("hidden");
-        console.log(score);
       });
 
       choicesList.appendChild(li);
@@ -104,5 +134,22 @@ document.addEventListener("DOMContentLoaded", () => {
     questionContainer.classList.add("hidden");
     resultContainer.classList.remove("hidden");
     scoreDisplay.textContent = `${score} out of ${questions.length}`;
+    progressBar.style.width = `100%`;
+    clearInterval(timerInterval);
+  }
+
+  function disableOptions() {
+    const allOptions = document.querySelectorAll("li");
+    allOptions.forEach((option) => {
+      option.style.pointerEvents = "none";
+    });
+  }
+
+  // Utility function to shuffle an array
+  function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
   }
 });
